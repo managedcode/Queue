@@ -9,10 +9,12 @@ namespace ManagedCode.Queue.AzureQueue;
 //https://docs.microsoft.com/en-us/azure/storage/queues/storage-dotnet-how-to-use-queues?tabs=dotnet
 public class AzureQueue : IQueue
 {
+    private readonly AzureQueueOptions _options;
     private readonly QueueClient _queueClient;
 
     public AzureQueue(AzureQueueOptions options)
     {
+        _options = options;
         _queueClient = new QueueClient(options.ConnectionString, options.Queue);
     }
 
@@ -53,7 +55,6 @@ public class AzureQueue : IQueue
 
     public async Task ProcessMessages(Action<Message> processMessage, CancellationToken cancellationToken)
     {
-        await Task.Yield();
         await foreach (var message in ReceiveMessagesAsync(cancellationToken))
         {
             processMessage(message);
@@ -64,7 +65,6 @@ public class AzureQueue : IQueue
 
     public async Task ProcessMessages(Func<Message, Task> processMessage, CancellationToken cancellationToken)
     {
-        await Task.Yield();
         await foreach (var message in ReceiveMessagesAsync(cancellationToken))
         {
             await processMessage(message);
