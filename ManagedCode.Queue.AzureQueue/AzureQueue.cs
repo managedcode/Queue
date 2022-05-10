@@ -3,17 +3,20 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using ManagedCode.Queue.AzureQueue.Options;
 using ManagedCode.Queue.Core;
+using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Queue.AzureQueue;
 
 //https://docs.microsoft.com/en-us/azure/storage/queues/storage-dotnet-how-to-use-queues?tabs=dotnet
 public class AzureQueue : IQueue
 {
+    private readonly ILogger<AzureQueue> _logger;
     private readonly AzureQueueOptions _options;
     private readonly QueueClient _queueClient;
 
-    public AzureQueue(AzureQueueOptions options)
+    public AzureQueue(ILogger<AzureQueue> logger, AzureQueueOptions options)
     {
+        _logger = logger;
         _options = options;
         _queueClient = new QueueClient(options.ConnectionString, options.Queue);
     }
@@ -32,6 +35,11 @@ public class AzureQueue : IQueue
     {
         QueueProperties properties = await _queueClient.GetPropertiesAsync(cancellationToken);
         return properties.ApproximateMessagesCount;
+    }
+    
+    public Task CleanQueue(CancellationToken cancellationToken)
+    {
+        return _queueClient.ClearMessagesAsync(cancellationToken);
     }
 
     public async Task<Message?> ReceiveMessageAsync(CancellationToken cancellationToken)
@@ -57,8 +65,17 @@ public class AzureQueue : IQueue
     {
         await foreach (var message in ReceiveMessagesAsync(cancellationToken))
         {
-            processMessage(message);
             await DeleteMessageAsync(message.Id, cancellationToken);
+            try
+            {
+                processMessage(message);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("ProcessMessages failed", e);
+                //return message to the queue
+                await SendMessageAsync(message.Body, cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
         }
     }
@@ -67,8 +84,17 @@ public class AzureQueue : IQueue
     {
         await foreach (var message in ReceiveMessagesAsync(cancellationToken))
         {
-            await processMessage(message);
             await DeleteMessageAsync(message.Id, cancellationToken);
+            try
+            {
+                await processMessage(message);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("ProcessMessages failed", e);
+                //return message to the queue
+                await SendMessageAsync(message.Body, cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
         }
     }
