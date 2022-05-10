@@ -78,8 +78,9 @@ public class AzureQueue : IQueue
         var tasks = new List<Task>(parallel);
         for (var i = 0; i < parallel; i++)
         {
-            tasks.Add(Task.Run(() => ProcessMessages(processMessage, cancellationToken), cancellationToken));
-        }
+            tasks.Add(Task.Factory.StartNew(o => ProcessMessages(processMessage, cancellationToken),
+                null, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current));
+        }   
 
         await Task.WhenAll(tasks);
     }
@@ -89,7 +90,8 @@ public class AzureQueue : IQueue
         var tasks = new List<Task>(parallel);
         for (var i = 0; i < parallel; i++)
         {
-            tasks.Add(Task.Run(() => ProcessMessages(processMessage, cancellationToken), cancellationToken));
+            tasks.Add(Task.Factory.StartNew(o => ProcessMessages(processMessage, cancellationToken),
+                null, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current));
         }
 
         await Task.WhenAll(tasks);
