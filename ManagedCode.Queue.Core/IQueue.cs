@@ -2,6 +2,7 @@
 
 public interface IQueue
 {
+    Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default);
     Task CreateQueueAsync(CancellationToken cancellationToken = default);
     Task DeleteQueueAsync(CancellationToken cancellationToken = default);
     Task<int> GetMessageCountAsync(CancellationToken cancellationToken = default);

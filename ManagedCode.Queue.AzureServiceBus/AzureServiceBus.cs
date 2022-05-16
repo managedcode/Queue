@@ -27,7 +27,15 @@ public class AzureServiceBus : IQueue
         _receiver = _client.CreateReceiver(options.Queue);
         _adminClient = new ServiceBusAdministrationClient(options.ConnectionString);
     }
-    
+
+    public async Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await _adminClient.QueueExistsAsync(_options.Queue, cancellationToken))
+        {
+            await _adminClient.CreateQueueAsync(_options.Queue, cancellationToken);
+        }
+    }
+
     public Task CreateQueueAsync(CancellationToken cancellationToken = default)
     {
         return _adminClient.CreateQueueAsync(_options.Queue, cancellationToken);
@@ -63,7 +71,7 @@ public class AzureServiceBus : IQueue
     {
         //_processor.ProcessMessageAsync += MessageHandler;
         //_processor.ProcessErrorAsync += ErrorHandler;
-        
+
         _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString()));
         await _processor.StartProcessingAsync(cancellationToken);
     }

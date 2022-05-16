@@ -21,9 +21,14 @@ public class AzureQueue : IQueue
         _queueClient = new QueueClient(options.ConnectionString, options.Queue);
     }
 
-    public async Task CreateQueueAsync(CancellationToken cancellationToken = default)
+    public async Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default)
     {
         await _queueClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+    }
+
+    public async Task CreateQueueAsync(CancellationToken cancellationToken = default)
+    {
+        await _queueClient.CreateAsync(cancellationToken: cancellationToken);
     }
 
     public async Task DeleteQueueAsync(CancellationToken cancellationToken = default)
@@ -36,7 +41,7 @@ public class AzureQueue : IQueue
         QueueProperties properties = await _queueClient.GetPropertiesAsync(cancellationToken);
         return properties.ApproximateMessagesCount;
     }
-    
+
     public Task CleanQueue(CancellationToken cancellationToken)
     {
         return _queueClient.ClearMessagesAsync(cancellationToken);
@@ -76,6 +81,7 @@ public class AzureQueue : IQueue
                 //return message to the queue
                 await SendMessageAsync(message.Body, cancellationToken);
             }
+
             cancellationToken.ThrowIfCancellationRequested();
         }
     }
@@ -95,6 +101,7 @@ public class AzureQueue : IQueue
                 //return message to the queue
                 await SendMessageAsync(message.Body, cancellationToken);
             }
+
             cancellationToken.ThrowIfCancellationRequested();
         }
     }
@@ -106,7 +113,7 @@ public class AzureQueue : IQueue
         {
             tasks.Add(Task.Factory.StartNew(o => ProcessMessages(processMessage, cancellationToken),
                 null, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current));
-        }   
+        }
 
         await Task.WhenAll(tasks);
     }

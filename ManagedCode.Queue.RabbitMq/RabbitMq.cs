@@ -14,7 +14,12 @@ public class RabbitMq : IQueue
         _logger = logger;
         _options = options;
     }
-    
+
+    public Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task CreateQueueAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
