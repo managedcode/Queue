@@ -70,14 +70,15 @@ public class AzureServiceBus : IQueue
     public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, CancellationToken cancellationToken)
     {
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString())!);
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(args.Message.Body.ToObjectFromJson<Message>());
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
-    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, int parallel, CancellationToken cancellationToken)
+    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, int parallel,
+        CancellationToken cancellationToken)
     {
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString())!);
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(args.Message.Body.ToObjectFromJson<Message>());
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
