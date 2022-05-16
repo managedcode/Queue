@@ -3,7 +3,6 @@ using Azure.Messaging.ServiceBus.Administration;
 using ManagedCode.Queue.AzureQueue.Options;
 using ManagedCode.Queue.Core;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace ManagedCode.Queue.AzureServiceBus;
 
@@ -70,7 +69,18 @@ public class AzureServiceBus : IQueue
     public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, CancellationToken cancellationToken)
     {
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(args.Message.Body.ToObjectFromJson<Message>());
+
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(
+            new Message
+            {
+                Id = new MessageId
+                {
+                    Id = args.Message.MessageId,
+                    ReceiptHandle = args.Message.To
+                },
+                Body = args.Message.Body.ToString()
+            });
+
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
@@ -78,7 +88,18 @@ public class AzureServiceBus : IQueue
         CancellationToken cancellationToken)
     {
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(args.Message.Body.ToObjectFromJson<Message>());
+
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(
+            new Message
+            {
+                Id = new MessageId
+                {
+                    Id = args.Message.MessageId,
+                    ReceiptHandle = args.Message.To
+                },
+                Body = args.Message.Body.ToString()
+            });
+
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
