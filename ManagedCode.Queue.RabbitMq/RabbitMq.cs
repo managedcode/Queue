@@ -50,6 +50,16 @@ public class RabbitMq : IQueue
         throw new NotImplementedException();
     }
 
+    public Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, int parallel, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task ProcessMessages(Func<Message, Task> processMessage, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();

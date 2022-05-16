@@ -86,7 +86,7 @@ public class AzureQueue : IQueue
         }
     }
 
-    public async Task ProcessMessages(Func<Message, Task> processMessage, CancellationToken cancellationToken)
+    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, CancellationToken cancellationToken)
     {
         await foreach (var message in ReceiveMessagesAsync(cancellationToken))
         {
@@ -97,9 +97,7 @@ public class AzureQueue : IQueue
             }
             catch (Exception e)
             {
-                _logger.LogError("ProcessMessages failed", e);
-                //return message to the queue
-                await SendMessageAsync(message.Body, cancellationToken);
+                await processError.Invoke(new MessageError(e));
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -118,12 +116,13 @@ public class AzureQueue : IQueue
         await Task.WhenAll(tasks);
     }
 
-    public async Task ProcessMessages(Func<Message, Task> processMessage, int parallel, CancellationToken cancellationToken)
+    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, int parallel,
+        CancellationToken cancellationToken)
     {
         var tasks = new List<Task>(parallel);
         for (var i = 0; i < parallel; i++)
         {
-            tasks.Add(Task.Factory.StartNew(o => ProcessMessages(processMessage, cancellationToken),
+            tasks.Add(Task.Factory.StartNew(o => ProcessMessages(processMessage, processError, cancellationToken),
                 null, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Current));
         }
 

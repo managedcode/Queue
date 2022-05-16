@@ -67,18 +67,17 @@ public class AzureServiceBus : IQueue
         return null;
     }
 
-    public async Task ProcessMessages(Func<Message, Task> processMessage, CancellationToken cancellationToken)
+    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, CancellationToken cancellationToken)
     {
-        //_processor.ProcessMessageAsync += MessageHandler;
-        //_processor.ProcessErrorAsync += ErrorHandler;
-
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString()));
+        _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString())!);
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
-    public async Task ProcessMessages(Func<Message, Task> processMessage, int parallel, CancellationToken cancellationToken)
+    public async Task ProcessMessages(Func<Message, Task> processMessage, Func<MessageError, Task> processError, int parallel, CancellationToken cancellationToken)
     {
-        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString()));
+        _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
+        _processor.ProcessMessageAsync += args => processMessage.Invoke(JsonConvert.DeserializeObject<Message>(args.Message.Body.ToString())!);
         await _processor.StartProcessingAsync(cancellationToken);
     }
 
