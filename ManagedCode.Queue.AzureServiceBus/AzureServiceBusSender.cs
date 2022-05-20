@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Queue.AzureServiceBus;
 
-public class AzureServiceBusSender : IQueueSender
+public class AzureServiceBusSender : IQueueSender, IAsyncDisposable
 {
     private readonly ILogger<AzureServiceBusSender> _logger;
     private readonly AzureServiceBusOptions _options;
@@ -49,7 +49,7 @@ public class AzureServiceBusSender : IQueueSender
         return _adminClient.DeleteQueueAsync(_options.Queue, cancellationToken);
     }
 
-    public async Task AddTopicAsync(string topic, CancellationToken cancellationToken = default)
+    public async Task InitializeAsync(string topic, CancellationToken cancellationToken = default)
     {
         if (!await _adminClient.TopicExistsAsync(topic, cancellationToken))
         {
@@ -59,5 +59,11 @@ public class AzureServiceBusSender : IQueueSender
         await _sender.DisposeAsync();
 
         _sender = _client.CreateSender(topic);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _sender.DisposeAsync();
+        await _client.DisposeAsync();
     }
 }

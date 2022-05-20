@@ -8,5 +8,5 @@ public interface IQueueSender
     Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default);
     Task CreateQueueAsync(CancellationToken cancellationToken = default);
     Task DeleteQueueAsync(CancellationToken cancellationToken = default);
-    Task AddTopicAsync(string topic, CancellationToken cancellationToken = default);
+    Task InitializeAsync(string topic, CancellationToken cancellationToken = default);
 }
