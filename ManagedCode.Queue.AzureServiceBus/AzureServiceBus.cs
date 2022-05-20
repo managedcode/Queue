@@ -71,15 +71,11 @@ public class AzureServiceBus : IQueue
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
 
         _processor.ProcessMessageAsync += args => processMessage.Invoke(
-            new Message
+            new Message(Id: new MessageId
             {
-                Id = new MessageId
-                {
-                    Id = args.Message.MessageId,
-                    ReceiptHandle = args.Message.To
-                },
-                Body = args.Message.Body.ToString()
-            });
+                Id = args.Message.MessageId,
+                ReceiptHandle = args.Message.To
+            }, Body: args.Message.Body.ToString()));
 
         await _processor.StartProcessingAsync(cancellationToken);
     }
@@ -90,15 +86,13 @@ public class AzureServiceBus : IQueue
         _processor.ProcessErrorAsync += args => processError.Invoke(new MessageError(args.Exception));
 
         _processor.ProcessMessageAsync += args => processMessage.Invoke(
-            new Message
-            {
-                Id = new MessageId
+            new Message(Id: new MessageId
                 {
                     Id = args.Message.MessageId,
                     ReceiptHandle = args.Message.To
                 },
-                Body = args.Message.Body.ToString()
-            });
+                Topic: "fdsfs",
+                Body: args.Message.Body.ToString()));
 
         await _processor.StartProcessingAsync(cancellationToken);
     }

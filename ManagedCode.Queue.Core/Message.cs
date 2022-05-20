@@ -1,7 +1,6 @@
 namespace ManagedCode.Queue.Core;
 
-public class Message
-{
-    public MessageId Id { get; set; }
-    public string Body { get; set; }
-}
+public record Message(
+    MessageId Id,
+    string? Body,
+    string? Topic = null);
