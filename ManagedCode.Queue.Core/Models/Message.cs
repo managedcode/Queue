@@ -1,4 +1,4 @@
-namespace ManagedCode.Queue.Core;
+namespace ManagedCode.Queue.Core.Models;
 
 public record Message(
     MessageId Id,
