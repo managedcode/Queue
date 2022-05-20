@@ -1,7 +1,7 @@
-﻿namespace ManagedCode.Queue.AzureQueue.Options;
+﻿namespace ManagedCode.Queue.AzureServiceBus.Options;
 
-public class AzureServiceBusOptions
+public record AzureServiceBusOptions(string ConnectionString, string Queue)
 {
-    public string? ConnectionString { get; set; }
-    public string? Queue { get; set; }
+    public string ConnectionString { get; set; } = ConnectionString;
+    public string Queue { get; set; } = Queue;
 }

@@ -1,12 +1,12 @@
 ﻿using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
-using ManagedCode.Queue.AzureQueue.Options;
+using ManagedCode.Queue.AzureServiceBus.Options;
 using ManagedCode.Queue.Core;
 using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Queue.AzureServiceBus;
 
-public class AzureServiceBus : IQueue
+public class AzureServiceBus :
 {
     private readonly ILogger<AzureServiceBus> _logger;
     private readonly AzureServiceBusOptions _options;
