@@ -62,6 +62,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
         });
 
         processor.ProcessMessageAsync += OnProcessMessageAsync;
+        processor.ProcessErrorAsync += OnProcessErrorAsync;
 
         await processor.StartProcessingAsync(cancellationToken);
 
@@ -78,6 +79,16 @@ public class AzureServiceBusReceiver : IQueueReceiver
                     Id: args.Message.MessageId,
                     ReceiptHandle: args.Message.To),
                 Body: args.Message.Body.ToString()));
+
+            return Task.CompletedTask;
+        }
+
+        Task OnProcessErrorAsync(ProcessErrorEventArgs args)
+        {
+            completionSource.SetResult(new Message(
+                Id: new MessageId(string.Empty),
+                Body: string.Empty,
+                Error: new Error(args.Exception)));
 
             return Task.CompletedTask;
         }
