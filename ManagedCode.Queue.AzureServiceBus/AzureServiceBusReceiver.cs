@@ -9,11 +9,13 @@ namespace ManagedCode.Queue.AzureServiceBus;
 
 public class AzureServiceBusReceiver : IQueueReceiver
 {
+    private readonly AzureServiceBusOptions _options;
     private readonly ServiceBusClient _client;
     private readonly ServiceBusAdministrationClient _adminClient;
 
     public AzureServiceBusReceiver(AzureServiceBusOptions options)
     {
+        _options = options;
         _client = new ServiceBusClient(options.ConnectionString);
         _adminClient = new ServiceBusAdministrationClient(options.ConnectionString);
     }
@@ -29,6 +31,28 @@ public class AzureServiceBusReceiver : IQueueReceiver
             subscriptionName,
             new ServiceBusProcessorOptions {ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete});
 
+        await foreach (var message in ProcessMessagesAsync(cancellationToken, processor))
+        {
+            if (cancellationToken.IsCancellationRequested) yield break;
+            yield return message;
+        }
+    }
+
+    public async IAsyncEnumerable<Message> ReceiveMessages([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await using var processor = _client.CreateProcessor(_options.Queue,
+            new ServiceBusProcessorOptions {ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete});
+
+        await foreach (var message in ProcessMessagesAsync(cancellationToken, processor))
+        {
+            if (cancellationToken.IsCancellationRequested) yield break;
+            yield return message;
+        }
+    }
+
+    private static async IAsyncEnumerable<Message> ProcessMessagesAsync([EnumeratorCancellation] CancellationToken cancellationToken,
+        ServiceBusProcessor processor)
+    {
         var completionSource = new TaskCompletionSource<Message>();
 
         cancellationToken.Register(() =>

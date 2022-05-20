@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ManagedCode.Queue.Core.Models;
 
 namespace ManagedCode.Queue.Core.Abstractions;
@@ -9,4 +10,5 @@ public interface IQueueReceiver
     Task<int> GetMessageCountAsync(CancellationToken cancellationToken = default);
 
     Task CleanQueue(CancellationToken cancellationToken);
+    IAsyncEnumerable<Message> ReceiveMessages([EnumeratorCancellation] CancellationToken cancellationToken = default);
 }
