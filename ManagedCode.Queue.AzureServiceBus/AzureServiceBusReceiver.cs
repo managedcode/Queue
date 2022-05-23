@@ -98,7 +98,16 @@ public class AzureServiceBusReceiver : IQueueReceiver
     {
         if (!await _adminClient.SubscriptionExistsAsync(topic, subscriptionName, cancellationToken))
         {
+            await CreateTopicIfNotExist(topic, cancellationToken);
             await _adminClient.CreateSubscriptionAsync(topic, subscriptionName, cancellationToken);
+        }
+    }
+
+    private async Task CreateTopicIfNotExist(string topic, CancellationToken cancellationToken = default)
+    {
+        if (!await _adminClient.TopicExistsAsync(topic, cancellationToken))
+        {
+            await _adminClient.CreateTopicAsync(topic, cancellationToken);
         }
     }
 
