@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using ManagedCode.Queue.AzureServiceBus.Options;
+using ManagedCode.Queue.Core;
 using ManagedCode.Queue.Core.Abstractions;
 using ManagedCode.Queue.Core.Models;
 
@@ -53,12 +54,12 @@ public class AzureServiceBusReceiver : IQueueReceiver
     private static async IAsyncEnumerable<Message> ProcessMessagesAsync([EnumeratorCancellation] CancellationToken cancellationToken,
         ServiceBusProcessor processor)
     {
-        var completionSource = new TaskCompletionSource<Message>();
+        var reusableAwaiter = new ReusableAwaiter<Message>();
 
         cancellationToken.Register(() =>
         {
             // this callback will be executed when token is cancelled
-            completionSource.TrySetCanceled();
+            reusableAwaiter.TrySetCanceled();
         });
 
         processor.ProcessMessageAsync += OnProcessMessageAsync;
@@ -68,13 +69,24 @@ public class AzureServiceBusReceiver : IQueueReceiver
 
         while (processor.IsProcessing)
         {
-            var message = await completionSource.Task;
-            yield return message;
+            Message? message = null;
+
+            try
+            {
+                message = await reusableAwaiter;
+                reusableAwaiter.Reset();
+            }
+            catch
+            {
+                reusableAwaiter.Reset();
+            }
+
+            if (message is not null) yield return message;
         }
 
         async Task OnProcessMessageAsync(ProcessMessageEventArgs args)
         {
-            completionSource.SetResult(new Message(
+            reusableAwaiter.TrySetResult(new Message(
                 Id: new MessageId(
                     Id: args.Message.MessageId,
                     ReceiptHandle: args.Message.To),
@@ -85,7 +97,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
 
         Task OnProcessErrorAsync(ProcessErrorEventArgs args)
         {
-            completionSource.SetResult(new Message(
+            reusableAwaiter.TrySetResult(new Message(
                 Id: new MessageId(string.Empty),
                 Body: string.Empty,
                 Error: new Error(args.Exception)));
