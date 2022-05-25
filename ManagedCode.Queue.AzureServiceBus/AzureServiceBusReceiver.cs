@@ -72,7 +72,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
             yield return message;
         }
 
-        Task OnProcessMessageAsync(ProcessMessageEventArgs args)
+        async Task OnProcessMessageAsync(ProcessMessageEventArgs args)
         {
             completionSource.SetResult(new Message(
                 Id: new MessageId(
@@ -80,7 +80,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
                     ReceiptHandle: args.Message.To),
                 Body: args.Message.Body.ToString()));
 
-            return Task.CompletedTask;
+            await args.CompleteMessageAsync(args.Message, cancellationToken);
         }
 
         Task OnProcessErrorAsync(ProcessErrorEventArgs args)
@@ -92,6 +92,19 @@ public class AzureServiceBusReceiver : IQueueReceiver
 
             return Task.CompletedTask;
         }
+    }
+
+    public async Task CreateQueueIfNotExistAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await _adminClient.QueueExistsAsync(_options.Queue, cancellationToken))
+        {
+            await _adminClient.CreateQueueAsync(_options.Queue, cancellationToken);
+        }
+    }
+
+    public Task CreateQueueAsync(CancellationToken cancellationToken = default)
+    {
+        return _adminClient.CreateQueueAsync(_options.Queue, cancellationToken);
     }
 
     private async Task CreateSubscriptionIfNotExist(string topic, string subscriptionName, CancellationToken cancellationToken = default)
