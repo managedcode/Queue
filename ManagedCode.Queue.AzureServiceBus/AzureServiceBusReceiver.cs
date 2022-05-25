@@ -84,7 +84,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
             if (message is not null) yield return message;
         }
 
-        async Task OnProcessMessageAsync(ProcessMessageEventArgs args)
+        Task OnProcessMessageAsync(ProcessMessageEventArgs args)
         {
             reusableAwaiter.TrySetResult(new Message(
                 Id: new MessageId(
@@ -92,7 +92,7 @@ public class AzureServiceBusReceiver : IQueueReceiver
                     ReceiptHandle: args.Message.To),
                 Body: args.Message.Body.ToString()));
 
-            await args.CompleteMessageAsync(args.Message, cancellationToken);
+            return Task.CompletedTask;
         }
 
         Task OnProcessErrorAsync(ProcessErrorEventArgs args)
