@@ -19,7 +19,7 @@ public sealed class ReusableAwaiter<T> : INotifyCompletion
 
     public void OnCompleted(Action continuation)
     {
-        if (_continuation is null)
+        if (_continuation is not null)
             throw new InvalidOperationException($"This {nameof(ReusableAwaiter<T>)} instance has already been listened");
 
         _continuation = continuation;
