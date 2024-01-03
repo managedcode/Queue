@@ -204,14 +204,4 @@ public class AzureServiceBusQueue : IQueueSender, IQueueReceiver, IQueueManager,
             return Task.CompletedTask;
         }
     }
-
-    private void InitializeClients()
-    {
-        if (!string.IsNullOrWhiteSpace(_options.ConnectionString))
-        {
-            
-            return;    
-        }
-        
-    }
 }
