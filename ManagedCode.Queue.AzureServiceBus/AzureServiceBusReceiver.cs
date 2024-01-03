@@ -9,24 +9,28 @@ using Microsoft.Extensions.Logging;
 
 namespace ManagedCode.Queue.AzureServiceBus;
 
-public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, IAsyncDisposable
+public class AzureServiceBusQueue : IQueueSender, IQueueReceiver, IQueueManager, IAsyncDisposable
 {
     private readonly AzureServiceBusOptions _options;
     private readonly ServiceBusClient _client;
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly ILogger<AzureServiceBusQueue> _logger;
-    private Dictionary<string,ServiceBusSender> _senders = new ();
-
+    private Dictionary<string, ServiceBusSender> _senders = new();
 
     public AzureServiceBusQueue(ILogger<AzureServiceBusQueue> logger, AzureServiceBusOptions options)
     {
         _logger = logger;
         _options = options;
-        _client = new ServiceBusClient(options.ConnectionString);
-        _adminClient = new ServiceBusAdministrationClient(options.ConnectionString);
-        _options = options;
-        _client = new ServiceBusClient(options.ConnectionString);
-        _adminClient = new ServiceBusAdministrationClient(options.ConnectionString);
+        if (!string.IsNullOrWhiteSpace(_options.ConnectionString))
+        {
+            _client = new ServiceBusClient(_options.ConnectionString);
+            _adminClient = new ServiceBusAdministrationClient(_options.ConnectionString);
+        }
+        else
+        {
+            _client = new ServiceBusClient(_options.FullyQualifiedNamespace, _options.DefaultAzureCredential);
+            _adminClient = new ServiceBusAdministrationClient(_options.FullyQualifiedNamespace, _options.DefaultAzureCredential);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -35,10 +39,10 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
         {
             await _sender.DisposeAsync();
         }
-        
+
         await _client.DisposeAsync();
     }
-    
+
     public Task SendMessageAsync(string queue, Message message, CancellationToken cancellationToken = default)
     {
         if (!_senders.ContainsKey(queue))
@@ -47,11 +51,12 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
         }
 
         _logger.LogInformation($"SendMessageAsync to queue {queue}");
-        
+
         return _senders[queue].SendMessageAsync(new ServiceBusMessage(message.Body), cancellationToken);
     }
 
-    public Task SendMessageAsync(string queue, string topic, Message message, CancellationToken cancellationToken = default)
+    public Task SendMessageAsync(string queue, string topic, Message message,
+        CancellationToken cancellationToken = default)
     {
         if (!_senders.ContainsKey(topic))
         {
@@ -59,11 +64,12 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
         }
 
         _logger.LogInformation($"SendMessageAsync to queue {topic}");
-        
+
         return _senders[topic].SendMessageAsync(new ServiceBusMessage(message.Body), cancellationToken);
     }
 
-    public async IAsyncEnumerable<Message> ReceiveMessages(string queue, string topic, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Message> ReceiveMessages(string queue, string topic,
+        CancellationToken cancellationToken = default)
     {
         var subscriptionName = topic + "Subscription";
 
@@ -77,7 +83,7 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
         await using var processor = _client.CreateProcessor(
             topic,
             subscriptionName,
-            new ServiceBusProcessorOptions {ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete});
+            new ServiceBusProcessorOptions { ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete });
 
         await foreach (var message in ProcessMessagesAsync(cancellationToken, processor))
         {
@@ -89,7 +95,7 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
     public async IAsyncEnumerable<Message> ReceiveMessages(string queue, CancellationToken cancellationToken = default)
     {
         await using var processor = _client.CreateProcessor(queue,
-            new ServiceBusProcessorOptions {ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete});
+            new ServiceBusProcessorOptions { ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete });
 
         await foreach (var message in ProcessMessagesAsync(cancellationToken, processor))
         {
@@ -134,8 +140,9 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
             await _adminClient.DeleteTopicAsync(topic, cancellationToken);
         }
     }
-    
-    private static async IAsyncEnumerable<Message> ProcessMessagesAsync([EnumeratorCancellation] CancellationToken cancellationToken, ServiceBusProcessor processor)
+
+    private static async IAsyncEnumerable<Message> ProcessMessagesAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken, ServiceBusProcessor processor)
     {
         var reusableAwaiter = new ReusableAwaiter<Message>();
 
@@ -164,7 +171,7 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
                 reusableAwaiter.Reset();
             }
 
-            if (message is not null) 
+            if (message is not null)
                 yield return message;
         }
 
@@ -177,17 +184,18 @@ public class AzureServiceBusQueue: IQueueSender, IQueueReceiver, IQueueManager, 
                     Id = args.Message.MessageId,
                     ReceiptHandle = args.Message.To,
                 },
-                
+
                 Body = args.Message.Body.ToString()
             });
-              
+
 
             return Task.CompletedTask;
         }
 
         Task OnProcessErrorAsync(ProcessErrorEventArgs args)
         {
-            reusableAwaiter.TrySetResult(new Message{
+            reusableAwaiter.TrySetResult(new Message
+            {
                 Id = new MessageId(),
                 Body = string.Empty,
                 Error = new Error(args.Exception)

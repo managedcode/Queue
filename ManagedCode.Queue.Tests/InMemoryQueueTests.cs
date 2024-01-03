@@ -10,6 +10,7 @@ public class InMemoryQueueTests
     private readonly IQueueSender _queueSender;
     private readonly IQueueReceiver _queueReceiver;
     private readonly IQueueManager _queueManager;
+    
     public InMemoryQueueTests()
     {
         var services = new ServiceCollection();
